@@ -15,12 +15,15 @@ import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 // Type utilities
 type NonNullable<T> = T extends null | undefined ? never : T;
 type RequiredKeys<T extends SchemaDefinition> = {
-  [K in keyof T]: T[K]["required"] extends true ? K : never;
+  // A key is required if its field type includes `required: true` specifically.
+  [K in keyof T]: T[K] extends { required: true } ? K : never;
 }[keyof T];
 
-type OptionalKeys<T extends SchemaDefinition> = {
-  [K in keyof T]: T[K]["required"] extends true ? never : K;
-}[keyof T];
+// Every other key is optional
+type OptionalKeys<T extends SchemaDefinition> = Exclude<
+  keyof T,
+  RequiredKeys<T>
+>;
 
 // type MyType = {
 //   a: string;
@@ -789,47 +792,68 @@ export class DynamoORM<T extends SchemaDefinition> {
 
 // Helper function to create schema fields
 export const field = {
-  string: (options: Omit<StringField, "type"> = {}): StringField => ({
-    type: "string",
-    ...options,
-  }),
+  // Each helper is generic so that literal option values (like `required: true`) are preserved
+  string<const O extends Omit<StringField, "type">>(options = {} as O) {
+    return {
+      type: "string",
+      ...options,
+    } as const satisfies StringField & O;
+  },
 
-  number: (options: Omit<NumberField, "type"> = {}): NumberField => ({
-    type: "number",
-    ...options,
-  }),
+  number<const O extends Omit<NumberField, "type">>(options = {} as O) {
+    return {
+      type: "number",
+      ...options,
+    } as const satisfies NumberField & O;
+  },
 
-  boolean: (options: Omit<BooleanField, "type"> = {}): BooleanField => ({
-    type: "boolean",
-    ...options,
-  }),
+  boolean<const O extends Omit<BooleanField, "type">>(options = {} as O) {
+    return {
+      type: "boolean",
+      ...options,
+    } as const satisfies BooleanField & O;
+  },
 
-  date: (options: Omit<DateField, "type"> = {}): DateField => ({
-    type: "date",
-    ...options,
-  }),
+  date<const O extends Omit<DateField, "type">>(options = {} as O) {
+    return {
+      type: "date",
+      ...options,
+    } as const satisfies DateField & O;
+  },
 
-  array: (options: Omit<ArrayField, "type"> = {}): ArrayField => ({
-    type: "array",
-    ...options,
-  }),
+  array<const O extends Omit<ArrayField, "type">>(options = {} as O) {
+    return {
+      type: "array",
+      ...options,
+    } as const satisfies ArrayField & O;
+  },
 
-  object: (options: Omit<ObjectField, "type"> = {}): ObjectField => ({
-    type: "object",
-    ...options,
-  }),
+  object<const O extends Omit<ObjectField, "type">>(options = {} as O) {
+    return {
+      type: "object",
+      ...options,
+    } as const satisfies ObjectField & O;
+  },
 
-  stringSet: (options: Omit<SetField, "type" | "itemType"> = {}): SetField => ({
-    type: "set",
-    itemType: "string",
-    ...options,
-  }),
+  stringSet<const O extends Omit<SetField, "type" | "itemType">>(
+    options = {} as O
+  ) {
+    return {
+      type: "set",
+      itemType: "string",
+      ...options,
+    } as const satisfies SetField & O & { itemType: "string" };
+  },
 
-  numberSet: (options: Omit<SetField, "type" | "itemType"> = {}): SetField => ({
-    type: "set",
-    itemType: "number",
-    ...options,
-  }),
+  numberSet<const O extends Omit<SetField, "type" | "itemType">>(
+    options = {} as O
+  ) {
+    return {
+      type: "set",
+      itemType: "number",
+      ...options,
+    } as const satisfies SetField & O & { itemType: "number" };
+  },
 };
 
 // Export types for external use
@@ -843,90 +867,3 @@ export type {
   ScanOptions,
   ValidationError,
 };
-
-// Usage example:
-/*
-  import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-  import { DynamoORM, field } from './dynamo-orm';
-  
-  // Define your schema
-  const userSchema = {
-    id: field.string({ required: true }),
-    email: field.string({ 
-      required: true, 
-      pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-      validate: (email) => email.includes('@') || 'Email must contain @'
-    }),
-    name: field.string({ required: true, minLength: 2, maxLength: 100 }),
-    age: field.number({ min: 0, max: 150, integer: true }),
-    isActive: field.boolean({ default: true }),
-    createdAt: field.date({ default: () => new Date() }),
-    tags: field.stringSet(),
-    metadata: field.object(),
-    scores: field.array({ items: field.number() })
-  } as const;
-  
-  // Create ORM instance
-  const client = new DynamoDBClient({ region: 'us-east-1' });
-  const userORM = new DynamoORM(client, userSchema, {
-    tableName: 'users',
-    partitionKey: 'id',
-    indexes: {
-      'email-index': {
-        partitionKey: 'email',
-        type: 'GSI'
-      }
-    }
-  });
-  
-  // Type-safe operations
-  async function example() {
-    // Create - fully type-safe
-    const user = await userORM.create({
-      id: '123',
-      email: 'john@example.com',
-      name: 'John Doe',
-      age: 30,
-      tags: new Set(['developer', 'typescript']),
-      scores: [95, 87, 92]
-    });
-  
-    // Get - returns typed result or null
-    const foundUser = await userORM.get('123');
-    if (foundUser) {
-      console.log(foundUser.name); // TypeScript knows this is string
-    }
-  
-    // Update - partial updates with validation
-    const updatedUser = await userORM.update('123', undefined, {
-      age: 31,
-      isActive: false
-    });
-  
-    // Query with type-safe filters
-    const results = await userORM.query('123', {
-      filterExpression: [
-        { field: 'age', operator: '>', value: 18 },
-        { field: 'isActive', operator: '=', value: true }
-      ],
-      limit: 10
-    });
-  
-    // Batch operations
-    await userORM.batchWrite([
-      {
-        operation: 'put',
-        item: {
-          id: '456',
-          email: 'jane@example.com',
-          name: 'Jane Doe',
-          age: 25
-        }
-      },
-      {
-        operation: 'delete',
-        key: { partitionKey: '789' }
-      }
-    ]);
-  }
-  */
