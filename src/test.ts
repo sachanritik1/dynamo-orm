@@ -44,30 +44,32 @@ async function example() {
   console.log(user);
 
   // Get - returns typed result or null
-  const foundUser = await userORM.get("123");
+  const foundUser = await userORM.get({ id: "123" });
   if (foundUser) {
     console.log(foundUser.name); // TypeScript knows this is string
   }
 
   // Update - partial updates with validation
-  const updatedUser = await userORM.update("123", undefined, {
-    age: 31,
-    isActive: false,
-  });
+  const updatedUser = await userORM.update(
+    { id: "123" },
+    {
+      age: 31,
+      isActive: false,
+    }
+  );
 
   // Query with type-safe filters
-  const results = await userORM.query("123", {
-    filterExpression: [
-      { field: "age", operator: ">", value: 18 },
-      { field: "isActive", operator: "=", value: true },
-    ],
-    limit: 10,
-  });
+  const results = await userORM.query(
+    [{ field: "id", operator: "=", value: "123" }],
+    {
+      limit: 10,
+    }
+  );
 
   // Batch operations
   await userORM.batchWrite([
     {
-      operation: "put",
+      type: "put",
       item: {
         id: "456",
         email: "jane@example.com",
@@ -78,8 +80,8 @@ async function example() {
       },
     },
     {
-      operation: "delete",
-      key: { partitionKey: "789" },
+      type: "delete",
+      key: { id: "789" },
     },
   ]);
 }
