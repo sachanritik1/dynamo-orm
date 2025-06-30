@@ -1,0 +1,19 @@
+{
+  "name": "dynamo-orm",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts --watch"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.839.0",
+    "@aws-sdk/util-dynamodb": "^3.839.0"
+  }
+}
