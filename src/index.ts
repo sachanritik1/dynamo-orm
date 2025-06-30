@@ -14,12 +14,22 @@ import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 
 // Type utilities
 type NonNullable<T> = T extends null | undefined ? never : T;
-type RequiredKeys<T> = {
-  [K in keyof T]-?: {} extends Pick<T, K> ? never : K;
+type RequiredKeys<T extends SchemaDefinition> = {
+  [K in keyof T]: T[K]["required"] extends true ? K : never;
 }[keyof T];
-type OptionalKeys<T> = {
-  [K in keyof T]-?: {} extends Pick<T, K> ? K : never;
+
+type OptionalKeys<T extends SchemaDefinition> = {
+  [K in keyof T]: T[K]["required"] extends true ? never : K;
 }[keyof T];
+
+// type MyType = {
+//   a: string;
+//   b?: number;
+//   c: boolean;
+// };
+
+// type R = RequiredKeys<MyType>; // "a" | "c"
+// type O = OptionalKeys<MyType>; // "b"
 
 // Schema definition types
 type FieldType =
@@ -117,7 +127,11 @@ type InferFieldType<T extends Field> = T extends StringField
     ? InferSchemaType<T["properties"]>
     : object
   : T extends SetField
-  ? Set<T["itemType"] extends "string" ? string : number>
+  ? T["itemType"] extends "string"
+    ? Set<string>
+    : T["itemType"] extends "number"
+    ? Set<number>
+    : Set<any>
   : any;
 
 type InferSchemaType<T extends SchemaDefinition> = {
