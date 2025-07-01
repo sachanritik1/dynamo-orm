@@ -1,8 +1,9 @@
-import { SchemaDefinition } from '../../src/types';
+import { field } from "../../src";
 
-export const userSchema: SchemaDefinition = {
-  id: { type: 'string', required: true },
-  name: { type: 'string', required: true },
-  age: { type: 'number' },
-  createdAt: { type: 'date', default: () => new Date() },
+export const userSchema = {
+  id: field.string({ required: true }),
+  name: field.string({ required: true }),
+  age: field.number(),
+  createdAt: field.date({ default: () => new Date() }),
+  updatedAt: field.date({ default: () => new Date() }),
 };

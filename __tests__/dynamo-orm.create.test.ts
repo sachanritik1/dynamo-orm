@@ -1,30 +1,27 @@
-import { mockClient } from 'aws-sdk-client-mock';
-import {
-  DynamoDBClient,
-  PutItemCommand,
-} from '@aws-sdk/client-dynamodb';
-import { marshall } from '@aws-sdk/util-dynamodb';
+import { mockClient } from "aws-sdk-client-mock";
+import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
+import { marshall } from "@aws-sdk/util-dynamodb";
 
-import { DynamoORM } from '../src/orm';
-import { userSchema } from './fixtures/schemas';
-import { TableConfig } from '../src/types';
+import { DynamoORM } from "../src/orm";
+import { userSchema } from "./fixtures/schemas";
+import { TableConfig } from "../src/types";
 
 // Create a mock for DynamoDBClient that can intercept command calls
 const ddbMock = mockClient(DynamoDBClient);
 
 const tableConfig: TableConfig = {
-  tableName: 'Users',
-  partitionKey: 'id',
+  tableName: "Users",
+  partitionKey: "id",
 };
 
 beforeEach(() => {
   ddbMock.reset();
 });
 
-describe('DynamoORM.create()', () => {
-  it('should send PutItemCommand and return the original item', async () => {
+describe("DynamoORM.create()", () => {
+  it("should send PutItemCommand and return the original item", async () => {
     // Arrange
-    const input = { id: '123', name: 'Ada' } as const;
+    const input = { id: "123", name: "Ada" };
     ddbMock.on(PutItemCommand).resolves({});
 
     const orm = new DynamoORM(new DynamoDBClient({}), userSchema, tableConfig);
@@ -39,7 +36,7 @@ describe('DynamoORM.create()', () => {
 
     // Inspect the command payload
     const sent = ddbMock.commandCalls(PutItemCommand)[0].args[0].input;
-    expect(sent.TableName).toBe('Users');
+    expect(sent.TableName).toBe("Users");
     //  Item should at least contain the partition key
     expect(sent.Item).toMatchObject(marshall(input));
   });
