@@ -303,10 +303,7 @@ export class DynamoORM<T extends SchemaDefinition> {
       if (fieldDefinition) {
         if (fieldDefinition.type === "date" && typeof value === "string") {
           newItem[key] = new Date(value);
-        } else if (
-          fieldDefinition.type === "set" &&
-          Array.isArray(value)
-        ) {
+        } else if (fieldDefinition.type === "set" && Array.isArray(value)) {
           newItem[key] = new Set(value);
         } else {
           newItem[key] = value;
