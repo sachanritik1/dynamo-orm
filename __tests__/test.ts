@@ -1,7 +1,7 @@
 // Usage example:
 
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoORM, field } from "./index";
+import { DynamoORM, field } from "../src/index";
 
 // Define your schema
 const userSchema = {
